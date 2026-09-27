@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversor de Tasas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: Arial, sans-serif; }
+        body { background: #f0f4f8; padding: 2rem; }
+        .contenedor { max-width: 480px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 1.5rem; }
+        .campo { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.4rem; color: #34495e; font-weight: bold; }
+        select, input { width: 100%; padding: 0.8rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
+        button { width: 100%; padding: 1rem; background: #27ae60; color: white; border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; margin-top: 0.5rem; }
+        button:hover { background: #219653; }
+        #resultado { margin-top: 1.5rem; padding: 1.2rem; border-radius: 8px; font-size: 1.2rem; text-align: center; font-weight: bold; display: none; }
+        .exito { background: #e8f5e9; color: #2e7d32; }
+        .error { background: #ffebee; color: #c62828; }
+        .oculto { display: none !important; }
+    </style>
+</head>
+<body>
+    <div class="contenedor">
+        <h1>Conversor de Tasas de interes TN-TE</h1>
+
+        <!-- Elegir tipo de conversión -->
+        <div class="campo">
+            <label>Tipo de conversión</label>
+            <select id="convert" onchange="actualizarCampos()">
+                <option value="NN">Nominal a Nominal </option>
+                <option value="EE">Efectiva a Efectiva</option>
+                <option value="NE">Nominal a Efectiva</option>
+                <option value="EN">Efectiva a Nominal</option>
+            </select>
+        </div>
+
+        <!-- Escribir la tasa -->
+        <div class="campo">
+            <label>Tasa que tienes (%)</label>
+            <input type="number" id="tasa" step="0.0001" placeholder="Ej: 5">
+        </div>
+
+        <!-- Período de origen -->
+        <div class="campo" id="campo_origen">
+            <label>Período de la tasa que tienes</label>
+            <select id="per_initial"> 
+                <option value="" selected disabled>-- Selecciona el período --</option>
+                <option value="30">Mensual (30 días)</option>
+                <option value="60">Bimestral (60 días)</option>
+                <option value="90">Trimestral (90 días)</option>
+                <option value="120">Cuatrimestral (120 días)</option>
+                <option value="180">Semestral  (180 días)</option>
+                <option value="360">Anual (360 días)</option>
+            </select>
+        </div>
+
+        <!-- Capitalización -->
+        <div class="campo" id="campo_cap">
+            <label>Capitalización</label>
+            <select id="capitalizacion">
+                <option value="" selected disabled>-- Selecciona la capitalizacion --</option>
+                <option value="30">Mensual (30 días)</option>
+                <option value="60">Bimestral (60 días)</option>
+                <option value="90">Trimestral (90 días)</option>
+                <option value="120">Cuatrimestral (120 días)</option>
+                <option value="180">Semestral  (180 días)</option>
+                <option value="360">Anual (360 días)</option>
+            </select>
+        </div>
+
+        <!-- Período de destino -->
+        <div class="campo" id="campo_destino">
+            <label>Período que quieres</label>
+            <select id="per_end">
+                <option value="30">Mensual — 30 días</option>
+                <option value="60">Bimestral — 60 días</option>
+                <option value="90">Trimestral — 90 días</option>
+                <option value="120">Cuatrimestral — 120 días</option>
+                <option value="180">Semestral — 180 días</option>
+                <option value="360" selected>Anual — 360 días</option>
+            </select>
+        </div>
+
+        <button onclick="convertir()">Calcular</button>
+
+        <div id="resultado"></div>
+    </div>
+
+    <script>
+        // Mostrar u ocultar campos según la conversión
+        function actualizarCampos() {
+            const convert = document.getElementById('convert').value;
+            const campo_cap = document.getElementById('campo_cap');
+            
+            // En Nominal a Nominal y Efectiva a Efectiva no se muestra capitalización
+            if (convert === 'NN' || convert === 'EE') {
+                campo_cap.classList.add('oculto');
+            } else {
+                campo_cap.classList.remove('oculto');
+            }
+        }
+
+        // Realizar el cálculo
+        function convertir() {
+            const convert = document.getElementById('convert').value;
+            const tasa = parseFloat(document.getElementById('tasa').value);
+            const per_initial = parseFloat(document.getElementById('per_initial').value);
+            const cap = parseFloat(document.getElementById('capitalizacion').value);
+            const per_end = parseFloat(document.getElementById('per_end').value);
+            const result = document.getElementById('resultado');
+
+            if (!tasa) {
+                result.style.display = 'block';
+                result.className = 'error';
+                result.textContent = 'Escribe la tasa';
+                return;
+            }
+
+            let res = 0;
+            const i = tasa / 100;
+
+            switch(convert) {
+                // Nominal a Nominal forma multiplicar o dividir
+                case 'NN':
+                    if (per_end > per_initial) {
+                        res = tasa * (per_end / per_initial);
+                    } else if (per_end < per_initial) {
+                        res = tasa / (per_initial / per_end);
+                    } else {
+                        res = tasa;
+                    }
+                    break;
+
+                // Efectiva a Efectiva
+                case 'EE':
+                    res = Math.pow(1 + i, per_end / per_initial) - 1;
+                    res = res * 100;
+                    break;
+
+                // Nominal a Efectiva
+                case 'NE':
+                    res = Math.pow(1 + i / (per_initial / cap), per_end / cap) - 1;
+                    res = res * 100;
+                    break;
+
+                // Efectiva → Nominal
+                case 'EN':
+                    res = (per_end / cap) * (Math.pow(1 + i, cap / per_initial) - 1);
+                    res = res * 100;
+                    break;
+            }
+
+            result.style.display = 'block';
+            result.className = 'exito';
+            result.textContent = 'Resultado: ' + res.toFixed(2) + ' %';
+        }
+
+        // Inicializar al cargar
+        actualizarCampos();
+    </script>
+</body>
+</html>
